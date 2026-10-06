@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
+import { getBundle } from '../utils/bundle'
 import { fetchDocument, isAbortError } from '../utils/fetch-document'
 import { validateSourceInput } from '../utils/source-url'
+import {
+  LOCAL_UPLOAD_MISSING_MESSAGE,
+  describeSkips,
+  isMarkdownFile,
+  missingBundleFile
+} from '../utils/upload'
 import type { RenderResult } from '../utils/markdown'
 import type { Source } from '../utils/source'
 
@@ -14,6 +21,11 @@ const error = ref('')
 const validationError = ref('')
 const loading = ref(false)
 
+const localId = ref('')
+const localName = ref('')
+const skippedLines = ref<string[]>([])
+const fileList = ref<string[]>([])
+
 let controller: AbortController | null = null
 
 useHead(() => ({ title: documentTitle.value }))
@@ -21,6 +33,13 @@ useHead(() => ({ title: documentTitle.value }))
 function abortInFlight(): void {
   controller?.abort()
   controller = null
+}
+
+function resetLocal(): void {
+  localId.value = ''
+  localName.value = ''
+  skippedLines.value = []
+  fileList.value = []
 }
 
 function resetView(message: string): void {
@@ -31,6 +50,7 @@ function resetView(message: string): void {
   source.value = null
   documentTitle.value = 'md-reader'
   validationError.value = message
+  resetLocal()
 }
 
 async function load(href: string): Promise<void> {
@@ -63,7 +83,52 @@ async function load(href: string): Promise<void> {
   }
 }
 
+async function openLocal(bundleId: string, path: string): Promise<void> {
+  abortInFlight()
+  resetLocal()
+  validationError.value = ''
+  error.value = ''
+  markdown.value = ''
+  loading.value = false
+
+  const bundle = getBundle(bundleId)
+  if (!bundle) {
+    resetView(LOCAL_UPLOAD_MISSING_MESSAGE)
+    return
+  }
+  localId.value = bundleId
+  localName.value = bundle.name
+  skippedLines.value = describeSkips(bundle.skipped)
+  fileList.value = Object.keys(bundle.files).filter(isMarkdownFile).sort()
+
+  if (path === '') {
+    documentTitle.value = bundle.name
+    return
+  }
+
+  const blob = bundle.files[path]
+  if (!blob) {
+    resetView(missingBundleFile(path))
+    return
+  }
+  loading.value = true
+  try {
+    markdown.value = await blob.text()
+    source.value = { kind: 'local', bundleId, path }
+  } catch {
+    resetView('Something went wrong while reading this file.')
+  } finally {
+    loading.value = false
+  }
+}
+
 function startFromQuery(): void {
+  const local = route.query.local
+  if (typeof local === 'string' && local !== '') {
+    const path = typeof route.query.path === 'string' ? route.query.path : ''
+    void openLocal(local, path)
+    return
+  }
   const raw = route.query.src
   const value = typeof raw === 'string' ? raw : ''
   if (value === '') {
@@ -83,7 +148,7 @@ function onRendered(result: RenderResult): void {
 }
 
 watch(
-  () => route.query.src,
+  () => [route.query.local, route.query.src, route.query.path],
   () => startFromQuery(),
   { immediate: true }
 )
@@ -110,11 +175,34 @@ onBeforeUnmount(abortInFlight)
       <NuxtLink to="/">Upload instead</NuxtLink>
     </template>
 
-    <MarkdownView
-      v-else-if="source"
-      :markdown="markdown"
-      :source="source"
-      @rendered="onRendered"
-    />
+    <template v-else-if="localId && !source">
+      <template v-if="fileList.length > 0">
+        <h1>{{ localName }}</h1>
+        <p v-if="skippedLines.length > 0" role="status">
+          <template v-for="line in skippedLines" :key="line">
+            <span>{{ line }}</span><br>
+          </template>
+        </p>
+        <ul>
+          <li v-for="path in fileList" :key="path">
+            <NuxtLink :to="{ path: '/read', query: { local: localId, path } }">{{ path }}</NuxtLink>
+          </li>
+        </ul>
+      </template>
+      <p v-else>This folder has no Markdown files.</p>
+    </template>
+
+    <template v-else-if="source">
+      <p v-if="skippedLines.length > 0" role="status">
+        <template v-for="line in skippedLines" :key="line">
+          <span>{{ line }}</span><br>
+        </template>
+      </p>
+      <MarkdownView
+        :markdown="markdown"
+        :source="source"
+        @rendered="onRendered"
+      />
+    </template>
   </main>
 </template>
