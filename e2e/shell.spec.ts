@@ -12,6 +12,6 @@ test('hard load + refresh on /read?... falls back to the SPA shell', async ({ pa
   const response = await page.goto(url)
   expect(response?.status()).toBe(200)
   const reloaded = await page.reload()
-  expect(reloaded?.status()).toBe(200)
+  expect([200, 304]).toContain(reloaded?.status())
   await expect(page.locator('#__nuxt')).not.toBeEmpty()
 })

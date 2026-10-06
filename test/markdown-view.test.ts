@@ -21,6 +21,18 @@ describe('MarkdownView', () => {
     expect(wrapper.html()).not.toContain('<script')
   })
 
+  it('emits the render result with the document title', async () => {
+    const wrapper = mount(MarkdownView, {
+      props: { markdown: '# Readme Title', source }
+    })
+    const emitted = wrapper.emitted('rendered')
+    expect(emitted).toBeTruthy()
+    expect(emitted?.[0]?.[0]).toMatchObject({
+      title: 'Readme Title',
+      headings: [{ level: 1, text: 'Readme Title' }]
+    })
+  })
+
   it('renders code blocks unhighlighted first, then highlights lazily', async () => {
     const wrapper = mount(MarkdownView, {
       props: { markdown: '```js\nconst a = 1\n```', source }

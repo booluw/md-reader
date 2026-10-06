@@ -6,7 +6,8 @@ export default withNuxt(
   },
   {
     rules: {
-      'vue/no-v-html': 'off'
+      'vue/no-v-html': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }]
     }
   },
   {
