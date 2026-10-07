@@ -8,6 +8,9 @@ export const VALID_MD_URL = 'http://localhost:4173/__fixtures__/valid.md'
 export const BIG_MD_URL = 'http://localhost:4173/__fixtures__/big.md'
 export const UNREACHABLE_URL = 'http://localhost:9/missing.md'
 export const LINKED_A_URL = 'http://localhost:4173/__fixtures__/linked/a.md'
+export const LINKED_B_URL = 'http://localhost:4173/__fixtures__/linked/b.md'
+export const WIDE_MD_URL = 'http://localhost:4173/__fixtures__/wide.md'
+export const EMPTY_MD_URL = 'http://localhost:4173/__fixtures__/empty.md'
 
 const PNG_BYTES = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -63,6 +66,18 @@ Some **bold** text and a [link](https://example.com).
 
 const BIG_MD = `# Big File\n\n${'x'.repeat(6 * 1024 * 1024)}`
 
+const WIDE_COLUMNS = Array.from({ length: 12 }, (_, index) => `Column ${index}`)
+const WIDE_MD = `# Wide Table
+
+${FILLER}
+
+| ${WIDE_COLUMNS.join(' | ')} |
+| ${WIDE_COLUMNS.map(() => '---').join(' | ')} |
+| ${WIDE_COLUMNS.map((_, index) => `value ${index} with enough text to widen the table`).join(' | ')} |
+`
+
+const EMPTY_MD = '   \n\n'
+
 function writeAtomic(path: string, contents: string): void {
   const tempPath = `${path}.tmp`
   writeFileSync(tempPath, contents)
@@ -75,6 +90,8 @@ export default function installFixtures(): void {
   mkdirSync(fixtureDir, { recursive: true })
   writeAtomic(`${fixtureDir}/valid.md`, VALID_MD)
   writeAtomic(`${fixtureDir}/big.md`, BIG_MD)
+  writeAtomic(`${fixtureDir}/wide.md`, WIDE_MD)
+  writeAtomic(`${fixtureDir}/empty.md`, EMPTY_MD)
 
   const linkedDir = `${fixtureDir}/linked`
   mkdirSync(linkedDir, { recursive: true })

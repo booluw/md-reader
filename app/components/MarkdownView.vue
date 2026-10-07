@@ -63,6 +63,6 @@ onBeforeUnmount(() => revokeLocalImages(objectUrls))
 </script>
 
 <template>
-  <p v-if="isEmpty">This file is empty</p>
+  <p v-if="isEmpty" class="state">This file is empty</p>
   <article v-else ref="root" class="markdown-body" @click="onClick" v-html="result.html" />
 </template>

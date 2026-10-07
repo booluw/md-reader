@@ -5,11 +5,11 @@
 
 ## Acceptance criteria
 
-- [ ] Layout: header (source + share + "open another"), document, optional table of contents
+- [x] Layout: header (source + share + "open another"), document, optional table of contents
       from `headings` (sticky on desktop, collapsible on mobile).
-- [ ] Light/dark theme following `prefers-color-scheme` with a manual toggle (remembered in
+- [x] Light/dark theme following `prefers-color-scheme` with a manual toggle (remembered in
       `localStorage`).
-- [ ] Readable typography: max line length ~75ch; tables scroll horizontally inside their own
+- [x] Readable typography: max line length ~75ch; tables scroll horizontally inside their own
       container, never the page.
-- [ ] Loading, empty and error states designed for every view (landing, reader, file tree).
-- [ ] Axe scan has zero serious/critical violations on landing and reader pages.
+- [x] Loading, empty and error states designed for every view (landing, reader, file tree).
+- [x] Axe scan has zero serious/critical violations on landing and reader pages.

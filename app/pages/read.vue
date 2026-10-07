@@ -8,14 +8,16 @@ import {
   scrollToHash
 } from '../utils/scroll-restoration'
 import { validateSourceInput } from '../utils/source-url'
-import { sourceBreadcrumb } from '../utils/source'
+import { sourceBreadcrumb, sourceFilename } from '../utils/source'
+import { buildShareUrl } from '../utils/share'
+import { useActiveHeading } from '../composables/useActiveHeading'
 import {
   LOCAL_UPLOAD_MISSING_MESSAGE,
   describeSkips,
   isMarkdownFile,
   missingBundleFile
 } from '../utils/upload'
-import type { RenderResult } from '../utils/markdown'
+import type { Heading, RenderResult } from '../utils/markdown'
 import type { Source } from '../utils/source'
 
 const route = useRoute()
@@ -34,10 +36,19 @@ const localName = ref('')
 const skippedLines = ref<string[]>([])
 const fileList = ref<string[]>([])
 const fileMap = ref<Record<string, Blob>>({})
+const headings = ref<Heading[]>([])
 
 const breadcrumb = computed(() => (source.value ? sourceBreadcrumb(source.value) : []))
 const activePath = computed(() => (source.value?.kind === 'local' ? source.value.path : ''))
 const isLocal = computed(() => source.value?.kind === 'local')
+const sourceLabel = computed(() => (source.value ? sourceFilename(source.value) : ''))
+const headingsEnabled = computed(() => source.value !== null && headings.value.length > 0)
+const { activeId } = useActiveHeading(headings, headingsEnabled)
+
+const origin = typeof window === 'undefined' ? '' : window.location.origin
+const shareUrl = computed(() =>
+  source.value ? buildShareUrl(origin, source.value, activeId.value) : ''
+)
 
 let controller: AbortController | null = null
 let generation = 0
@@ -143,6 +154,7 @@ function beginNavigation(): number {
   generation += 1
   ready = false
   linkError.value = ''
+  headings.value = []
   window.scrollTo(0, 0)
   return generation
 }
@@ -205,6 +217,7 @@ async function startFromQuery(): Promise<void> {
 
 function onRendered(result: RenderResult): void {
   documentTitle.value = result.title || 'md-reader'
+  headings.value = result.headings
 }
 
 watch(
@@ -234,7 +247,9 @@ onBeforeUnmount(() => {
     </template>
 
     <template v-else-if="loading">
-      <p role="status">Loading…</p>
+      <p role="status" class="state">
+        <span class="spinner" aria-hidden="true" /> Loading…
+      </p>
     </template>
 
     <template v-else-if="error">
@@ -259,7 +274,7 @@ onBeforeUnmount(() => {
         </nav>
         <FileTree :paths="fileList" :bundle-id="localId" />
       </template>
-      <p v-else>This folder has no Markdown files.</p>
+      <p v-else class="state">This folder has no Markdown files.</p>
     </template>
 
     <template v-else-if="source">
@@ -269,6 +284,11 @@ onBeforeUnmount(() => {
         </template>
       </p>
       <p v-if="linkError" role="alert">{{ linkError }}</p>
+      <div class="reader-toolbar">
+        <p class="reader-source" data-testid="reader-source">{{ sourceLabel }}</p>
+        <ShareButton :url="shareUrl" />
+        <NuxtLink to="/" class="btn">Open another</NuxtLink>
+      </div>
       <nav v-if="breadcrumb.length > 0" aria-label="Breadcrumb">
         <ol class="breadcrumb">
           <li v-for="(segment, index) in breadcrumb" :key="index">{{ segment }}</li>
@@ -278,14 +298,22 @@ onBeforeUnmount(() => {
         <aside v-if="isLocal && fileList.length > 0" class="reader-sidebar">
           <FileTree :paths="fileList" :bundle-id="localId" :active-path="activePath" />
         </aside>
-        <MarkdownView
-          :markdown="markdown"
-          :source="source"
-          :files="isLocal ? fileMap : undefined"
-          @rendered="onRendered"
-          @missing="onMissingLink"
-          @navigate="onNavigate"
-        />
+        <div class="reader-content">
+          <MarkdownView
+            :markdown="markdown"
+            :source="source"
+            :files="isLocal ? fileMap : undefined"
+            @rendered="onRendered"
+            @missing="onMissingLink"
+            @navigate="onNavigate"
+          />
+        </div>
+        <aside v-if="headings.length > 0" class="reader-toc">
+          <details open>
+            <summary>Contents</summary>
+            <TableOfContents :headings="headings" :active-id="activeId" />
+          </details>
+        </aside>
       </div>
     </template>
   </main>

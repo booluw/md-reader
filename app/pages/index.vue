@@ -185,7 +185,7 @@ function onCancelDeleteAll(): void {
         :aria-describedby="error ? 'source-url-error' : undefined"
       >
       <p v-if="error" id="source-url-error" role="alert">{{ error }}</p>
-      <button type="submit">Open</button>
+      <button type="submit" class="btn">Open</button>
     </form>
 
     <section
@@ -200,8 +200,8 @@ function onCancelDeleteAll(): void {
     >
       <p>Drag and drop a Markdown file or folder here</p>
       <p>or</p>
-      <button type="button" @click="fileInput?.click()">Choose a Markdown file</button>
-      <button type="button" @click="folderInput?.click()">Choose a folder</button>
+      <button type="button" class="btn" @click="fileInput?.click()">Choose a Markdown file</button>
+      <button type="button" class="btn" @click="folderInput?.click()">Choose a folder</button>
     </section>
     <input
       ref="fileInput"
@@ -219,8 +219,8 @@ function onCancelDeleteAll(): void {
       aria-label="Choose a folder"
       @change="onFileChange"
     >
-    <p v-if="uploadError" role="alert">{{ uploadError }}</p>
-    <p v-if="notice" role="status">{{ notice }}</p>
+    <p v-if="uploadError" class="state state-error" role="alert">{{ uploadError }}</p>
+    <p v-if="notice" class="state" role="status">{{ notice }}</p>
 
     <section v-if="saved.length > 0" aria-labelledby="saved-heading">
       <h2 id="saved-heading">Saved uploads</h2>
@@ -258,29 +258,3 @@ function onCancelDeleteAll(): void {
     </section>
   </main>
 </template>
-
-<style scoped>
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.drop-zone {
-  padding: 24px;
-  text-align: center;
-  border: 2px dashed #888;
-  border-radius: 8px;
-}
-
-.drop-zone.is-dragging {
-  border-color: #1a5fb4;
-  background: #f2f7ff;
-}
-</style>

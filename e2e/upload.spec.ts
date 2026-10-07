@@ -11,6 +11,7 @@ interface DropPayload {
 }
 
 async function dropPayload(page: Page, files: DropPayload[]): Promise<void> {
+  await page.waitForSelector('[data-testid="drop-zone"]')
   await page.evaluate((payload) => {
     const transfer = new DataTransfer()
     for (const { name, content, relativePath } of payload) {

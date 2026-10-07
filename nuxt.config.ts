@@ -8,10 +8,13 @@ export default defineNuxtConfig({
 
   modules: ['@nuxt/eslint'],
 
+  css: ['~/assets/css/main.css'],
+
   app: {
     head: {
       htmlAttrs: { lang: 'en' },
-      title: 'md-reader'
+      title: 'md-reader',
+      meta: [{ name: 'color-scheme', content: 'light dark' }]
     }
   }
 })
