@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
-import { getBundle } from '../utils/bundle'
+import { loadBundle } from '../utils/bundle-store'
 import { fetchDocument, isAbortError } from '../utils/fetch-document'
 import { validateSourceInput } from '../utils/source-url'
 import {
@@ -91,7 +91,7 @@ async function openLocal(bundleId: string, path: string): Promise<void> {
   markdown.value = ''
   loading.value = false
 
-  const bundle = getBundle(bundleId)
+  const bundle = await loadBundle(bundleId)
   if (!bundle) {
     resetView(LOCAL_UPLOAD_MISSING_MESSAGE)
     return

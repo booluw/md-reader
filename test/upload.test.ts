@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { getBundle, registerBundle, resetBundles } from '../app/utils/bundle'
+import type { Bundle } from '../app/utils/bundle'
+import { loadBundle, resetBundleStore, saveBundle } from '../app/utils/bundle-store'
 import { MAX_FILE_BYTES } from '../app/utils/fetch-document'
 import { EXTENSION_ERROR } from '../app/utils/source-url'
 import {
@@ -12,7 +13,6 @@ import {
   resolveEntry,
   scanUploadedFiles
 } from '../app/utils/upload'
-import type { Bundle } from '../app/utils/bundle'
 
 function makeFile(name: string, size: number, relativePath = ''): File {
   return { name, size, webkitRelativePath: relativePath } as unknown as File
@@ -31,12 +31,12 @@ function folderFiles(): File[] {
   ]
 }
 
-beforeEach(() => {
-  resetBundles()
+beforeEach(async () => {
+  await resetBundleStore()
 })
 
-afterEach(() => {
-  resetBundles()
+afterEach(async () => {
+  await resetBundleStore()
 })
 
 describe('extension classification', () => {
@@ -194,8 +194,8 @@ describe('describeSkips', () => {
   })
 })
 
-describe('bundle registry', () => {
-  it('stores and retrieves bundles by id', () => {
+describe('bundle store', () => {
+  it('stores and retrieves bundles by id', async () => {
     const bundle: Bundle = {
       id: 'abc',
       name: 'x',
@@ -203,9 +203,11 @@ describe('bundle registry', () => {
       files: {},
       skipped: { count: 0, tooLarge: [], bundleLimit: [] }
     }
-    registerBundle(bundle)
-    expect(getBundle('abc')).toBe(bundle)
-    expect(getBundle('missing')).toBeUndefined()
+    await saveBundle(bundle, 'x')
+    const loaded = await loadBundle('abc')
+    expect(loaded?.id).toBe('abc')
+    expect(loaded?.name).toBe('x')
+    expect(await loadBundle('missing')).toBeUndefined()
     expect(MAX_FILE_BYTES).toBe(5 * 1024 * 1024)
   })
 })
