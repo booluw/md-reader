@@ -45,4 +45,33 @@ describe('MarkdownView', () => {
       expect(wrapper.find('code').html()).toContain('hljs-')
     })
   })
+
+  it('emits navigate when an internal link is clicked', async () => {
+    const wrapper = mount(MarkdownView, {
+      props: { markdown: '[next](./a.md)', source }
+    })
+    await wrapper.find('a.md-internal').trigger('click')
+    expect(wrapper.emitted('navigate')?.[0]?.[0]).toBe(
+      '/read?src=https%3A%2F%2Fexample.com%2Fa.md'
+    )
+  })
+
+  it('emits missing and does not navigate for a missing local link', async () => {
+    const localSource: Source = { kind: 'local', bundleId: 'b1', path: 'sub/c.md' }
+    const wrapper = mount(MarkdownView, {
+      props: { markdown: '[gone](../nope.md)', source: localSource, files: {} }
+    })
+    await wrapper.find('a.md-missing').trigger('click')
+    expect(wrapper.emitted('missing')?.[0]?.[0]).toBe('nope.md')
+    expect(wrapper.emitted('navigate')).toBeUndefined()
+  })
+
+  it('does not intercept external links', async () => {
+    const wrapper = mount(MarkdownView, {
+      props: { markdown: '[x](./image.png)', source }
+    })
+    await wrapper.find('a.md-external').trigger('click')
+    expect(wrapper.emitted('navigate')).toBeUndefined()
+    expect(wrapper.emitted('missing')).toBeUndefined()
+  })
 })

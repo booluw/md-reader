@@ -7,6 +7,46 @@ export const FIXTURE_BASE = '/__fixtures__'
 export const VALID_MD_URL = 'http://localhost:4173/__fixtures__/valid.md'
 export const BIG_MD_URL = 'http://localhost:4173/__fixtures__/big.md'
 export const UNREACHABLE_URL = 'http://localhost:9/missing.md'
+export const LINKED_A_URL = 'http://localhost:4173/__fixtures__/linked/a.md'
+
+const PNG_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64'
+)
+
+const FILLER = Array.from(
+  { length: 60 },
+  (_, index) => `Paragraph ${index}: filler text that makes this document tall enough to scroll.`
+).join('\n\n')
+
+const LINKED_A_MD = `# Doc A
+
+${FILLER}
+
+[to B](./b.md)
+
+[to B section](./b.md#target-section)
+
+[external](https://example.com)
+
+[mdx](./other.mdx)
+
+![pic](./pic.png)
+`
+
+const LINKED_B_MD = `# Doc B
+
+[to C](./c.md)
+
+## Target Section
+
+${FILLER}
+`
+
+const LINKED_C_MD = `# Doc C
+
+${FILLER}
+`
 
 const VALID_MD = `# Fixture Document
 
@@ -35,12 +75,20 @@ export default function installFixtures(): void {
   mkdirSync(fixtureDir, { recursive: true })
   writeAtomic(`${fixtureDir}/valid.md`, VALID_MD)
   writeAtomic(`${fixtureDir}/big.md`, BIG_MD)
+
+  const linkedDir = `${fixtureDir}/linked`
+  mkdirSync(linkedDir, { recursive: true })
+  writeAtomic(`${linkedDir}/a.md`, LINKED_A_MD)
+  writeAtomic(`${linkedDir}/b.md`, LINKED_B_MD)
+  writeAtomic(`${linkedDir}/c.md`, LINKED_C_MD)
+  writeFileSync(`${linkedDir}/pic.png`, PNG_BYTES)
 }
 
 export interface UploadFixtures {
   singleMd: string
   folderDir: string
   bigSingle: string
+  linkedDir: string
 }
 
 export function installUploadFixtures(): UploadFixtures {
@@ -48,6 +96,7 @@ export function installUploadFixtures(): UploadFixtures {
   const singleMd = join(dir, 'single.md')
   const folderDir = join(dir, 'docs')
   const bigSingle = join(dir, 'oversized.md')
+  const linkedDir = join(dir, 'linked')
 
   writeFileSync(singleMd, '# Single Upload')
   mkdirSync(join(folderDir, 'sub'), { recursive: true })
@@ -60,5 +109,14 @@ export function installUploadFixtures(): UploadFixtures {
   writeFileSync(join(folderDir, 'over5.md'), BIG_MD)
   writeFileSync(bigSingle, BIG_MD)
 
-  return { singleMd, folderDir, bigSingle }
+  mkdirSync(linkedDir, { recursive: true })
+  writeFileSync(
+    join(linkedDir, 'README.md'),
+    `# Linked A\n\n${FILLER}\n\n[to B](b.md)\n\n[missing](missing.md)\n\n![pic](img.png)\n`
+  )
+  writeFileSync(join(linkedDir, 'b.md'), '# Linked B\n\n[to C](c.md)')
+  writeFileSync(join(linkedDir, 'c.md'), '# Linked C')
+  writeFileSync(join(linkedDir, 'img.png'), PNG_BYTES)
+
+  return { singleMd, folderDir, bigSingle, linkedDir }
 }

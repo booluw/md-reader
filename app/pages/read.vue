@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { loadBundle } from '../utils/bundle-store'
 import { fetchDocument, isAbortError } from '../utils/fetch-document'
+import {
+  recordScrollPosition,
+  restoreScrollPosition,
+  scrollToHash
+} from '../utils/scroll-restoration'
 import { validateSourceInput } from '../utils/source-url'
+import { sourceBreadcrumb } from '../utils/source'
 import {
   LOCAL_UPLOAD_MISSING_MESSAGE,
   describeSkips,
@@ -13,20 +19,29 @@ import type { RenderResult } from '../utils/markdown'
 import type { Source } from '../utils/source'
 
 const route = useRoute()
+const router = useRouter()
 
 const documentTitle = ref('md-reader')
 const markdown = ref('')
 const source = ref<Source | null>(null)
 const error = ref('')
 const validationError = ref('')
+const linkError = ref('')
 const loading = ref(false)
 
 const localId = ref('')
 const localName = ref('')
 const skippedLines = ref<string[]>([])
 const fileList = ref<string[]>([])
+const fileMap = ref<Record<string, Blob>>({})
+
+const breadcrumb = computed(() => (source.value ? sourceBreadcrumb(source.value) : []))
+const activePath = computed(() => (source.value?.kind === 'local' ? source.value.path : ''))
+const isLocal = computed(() => source.value?.kind === 'local')
 
 let controller: AbortController | null = null
+let generation = 0
+let ready = false
 
 useHead(() => ({ title: documentTitle.value }))
 
@@ -40,6 +55,7 @@ function resetLocal(): void {
   localName.value = ''
   skippedLines.value = []
   fileList.value = []
+  fileMap.value = {}
 }
 
 function resetView(message: string): void {
@@ -100,6 +116,7 @@ async function openLocal(bundleId: string, path: string): Promise<void> {
   localName.value = bundle.name
   skippedLines.value = describeSkips(bundle.skipped)
   fileList.value = Object.keys(bundle.files).filter(isMarkdownFile).sort()
+  fileMap.value = bundle.files
 
   if (path === '') {
     documentTitle.value = bundle.name
@@ -122,25 +139,68 @@ async function openLocal(bundleId: string, path: string): Promise<void> {
   }
 }
 
-function startFromQuery(): void {
+function beginNavigation(): number {
+  generation += 1
+  ready = false
+  linkError.value = ''
+  window.scrollTo(0, 0)
+  return generation
+}
+
+async function settleScroll(gen: number): Promise<void> {
+  const hash = route.hash
+  await nextTick()
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  if (gen !== generation) return
+  if (hash === '') {
+    restoreScrollPosition(route.fullPath)
+  } else {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (gen !== generation || scrollToHash(hash)) break
+      await nextTick()
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    }
+  }
+  if (gen !== generation) return
+  ready = true
+}
+
+function onScroll(): void {
+  if (ready) recordScrollPosition(route.fullPath, window.scrollY)
+}
+
+function onMissingLink(path: string): void {
+  linkError.value = missingBundleFile(path)
+}
+
+function onNavigate(href: string): void {
+  void router.push(href)
+}
+
+async function startFromQuery(): Promise<void> {
+  const gen = beginNavigation()
   const local = route.query.local
   if (typeof local === 'string' && local !== '') {
     const path = typeof route.query.path === 'string' ? route.query.path : ''
-    void openLocal(local, path)
+    await openLocal(local, path)
+    await settleScroll(gen)
     return
   }
   const raw = route.query.src
   const value = typeof raw === 'string' ? raw : ''
   if (value === '') {
     resetView('This link is missing a Markdown file URL.')
+    await settleScroll(gen)
     return
   }
   const validation = validateSourceInput(value)
   if ('error' in validation) {
     resetView(validation.error)
+    await settleScroll(gen)
     return
   }
-  void load(validation.href)
+  await load(validation.href)
+  await settleScroll(gen)
 }
 
 function onRendered(result: RenderResult): void {
@@ -149,11 +209,20 @@ function onRendered(result: RenderResult): void {
 
 watch(
   () => [route.query.local, route.query.src, route.query.path],
-  () => startFromQuery(),
+  () => {
+    void startFromQuery()
+  },
   { immediate: true }
 )
 
-onBeforeUnmount(abortInFlight)
+onMounted(() => {
+  window.addEventListener('scroll', onScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll)
+  abortInFlight()
+})
 </script>
 
 <template>
@@ -176,18 +245,19 @@ onBeforeUnmount(abortInFlight)
     </template>
 
     <template v-else-if="localId && !source">
+      <h1>{{ localName }}</h1>
+      <p v-if="skippedLines.length > 0" role="status">
+        <template v-for="line in skippedLines" :key="line">
+          <span>{{ line }}</span><br>
+        </template>
+      </p>
       <template v-if="fileList.length > 0">
-        <h1>{{ localName }}</h1>
-        <p v-if="skippedLines.length > 0" role="status">
-          <template v-for="line in skippedLines" :key="line">
-            <span>{{ line }}</span><br>
-          </template>
-        </p>
-        <ul>
-          <li v-for="path in fileList" :key="path">
-            <NuxtLink :to="{ path: '/read', query: { local: localId, path } }">{{ path }}</NuxtLink>
-          </li>
-        </ul>
+        <nav aria-label="Breadcrumb">
+          <ol class="breadcrumb">
+            <li>{{ localName }}</li>
+          </ol>
+        </nav>
+        <FileTree :paths="fileList" :bundle-id="localId" />
       </template>
       <p v-else>This folder has no Markdown files.</p>
     </template>
@@ -198,11 +268,25 @@ onBeforeUnmount(abortInFlight)
           <span>{{ line }}</span><br>
         </template>
       </p>
-      <MarkdownView
-        :markdown="markdown"
-        :source="source"
-        @rendered="onRendered"
-      />
+      <p v-if="linkError" role="alert">{{ linkError }}</p>
+      <nav v-if="breadcrumb.length > 0" aria-label="Breadcrumb">
+        <ol class="breadcrumb">
+          <li v-for="(segment, index) in breadcrumb" :key="index">{{ segment }}</li>
+        </ol>
+      </nav>
+      <div class="reader-layout">
+        <aside v-if="isLocal && fileList.length > 0" class="reader-sidebar">
+          <FileTree :paths="fileList" :bundle-id="localId" :active-path="activePath" />
+        </aside>
+        <MarkdownView
+          :markdown="markdown"
+          :source="source"
+          :files="isLocal ? fileMap : undefined"
+          @rendered="onRendered"
+          @missing="onMissingLink"
+          @navigate="onNavigate"
+        />
+      </div>
     </template>
   </main>
 </template>

@@ -30,3 +30,13 @@ export function sourceFilename(source: Source): string {
   const segment = pathname.split('/').filter(Boolean).at(-1) ?? ''
   return decode(segment) || host || 'untitled'
 }
+
+export function sourceBreadcrumb(source: Source): string[] {
+  if (source.kind === 'local') {
+    return source.path.split('/').filter(Boolean).map(decode)
+  }
+  return urlPathname(source.href)
+    .pathname.split('/')
+    .filter(Boolean)
+    .map(decode)
+}

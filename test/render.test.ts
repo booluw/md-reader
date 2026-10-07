@@ -23,10 +23,11 @@ describe('GFM support', () => {
     expect(render('~~gone~~', urlSource).html).toMatch(/<s>gone<\/s>/)
   })
 
-  it('linkifies bare URLs', () => {
-    expect(render('see https://example.com/a', urlSource).html).toContain(
-      '<a href="https://example.com/a">'
-    )
+  it('linkifies bare URLs as external links', () => {
+    const { html } = render('see https://example.com/a', urlSource)
+    expect(html).toContain('href="https://example.com/a"')
+    expect(html).toContain('target="_blank"')
+    expect(html).toContain('rel="noopener noreferrer"')
   })
 
   it('renders fenced code with a language class', () => {
@@ -76,6 +77,60 @@ describe('sanitization', () => {
   it('keeps data: URLs on images', () => {
     const { html } = render('![x](data:image/png;base64,iVBORw0KGgo=)', urlSource)
     expect(html).toContain('data:image/png')
+  })
+})
+
+describe('link resolution', () => {
+  const localSource: Source = { kind: 'local', bundleId: 'b1', path: 'sub/c.md' }
+
+  it('rewrites markdown links to in-app URL routes', () => {
+    const { html } = render('[next](./a.md)', urlSource)
+    expect(html).toContain('href="/read?src=https%3A%2F%2Fexample.com%2Fdocs%2Fa.md"')
+    expect(html).toContain('data-md-kind="url"')
+  })
+
+  it('keeps the fragment in the route', () => {
+    const { html } = render('[next](./a.md#section)', urlSource)
+    expect(html).toContain('href="/read?src=https%3A%2F%2Fexample.com%2Fdocs%2Fa.md#section"')
+  })
+
+  it('opens external links in a new tab with rel and an indicator class', () => {
+    const { html } = render('[x](./image.png)', urlSource)
+    expect(html).toContain('target="_blank"')
+    expect(html).toContain('rel="noopener noreferrer"')
+    expect(html).toContain('md-external')
+  })
+
+  it('rewrites local markdown links to the local route', () => {
+    const { html } = render('[next](../b.md#frag)', localSource)
+    expect(html).toContain('href="/read?local=b1&amp;path=b.md#frag"')
+    expect(html).toContain('data-md-kind="local"')
+    expect(html).toContain('data-md-path="b.md"')
+  })
+
+  it('flags local links missing from the upload', () => {
+    const { html } = render('[gone](../nope.md)', localSource, new Set(['sub/c.md']))
+    expect(html).toContain('md-missing')
+    expect(html).toContain('data-md-missing="nope.md"')
+    expect(html).toContain('title="Not in this upload"')
+  })
+
+  it('does not flag present local links', () => {
+    const { html } = render('[ok](../b.md)', localSource, new Set(['sub/c.md', 'b.md']))
+    expect(html).not.toContain('md-missing')
+  })
+
+  it('resolves local images to data attributes with no-referrer', () => {
+    const { html } = render('![pic](../img/pic.png)', localSource)
+    expect(html).toContain('data-md-local-src="img/pic.png"')
+    expect(html).not.toContain(' src="')
+    expect(html).toContain('referrerpolicy="no-referrer"')
+  })
+
+  it('keeps remote images as src with no-referrer', () => {
+    const { html } = render('![pic](https://cdn.example.net/x.png)', localSource)
+    expect(html).toContain('src="https://cdn.example.net/x.png"')
+    expect(html).toContain('referrerpolicy="no-referrer"')
   })
 })
 
