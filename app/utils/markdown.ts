@@ -122,7 +122,10 @@ export function render(
   const raw = md.renderer.render(tokens, md.options, {})
   const html = DOMPurify.sanitize(raw, {
     ADD_TAGS: ['input'],
-    ADD_ATTR: ['checked', 'referrerpolicy', 'target']
+    ADD_ATTR: ['checked', 'referrerpolicy', 'target'],
+    FORBID_TAGS: ['style', 'template'],
+    FORBID_ATTR: ['style'],
+    KEEP_CONTENT: false
   })
 
   return { html, title: headings.find((h) => h.level === 1)?.text || title, headings }

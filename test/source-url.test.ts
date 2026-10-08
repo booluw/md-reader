@@ -12,6 +12,9 @@ describe('validateSourceInput', () => {
     ['example.com/README.md'],
     ['ftp://example.com/file.md'],
     ['data:text/markdown,# hi'],
+    ['javascript:alert(1)'],
+    ['vbscript:msgbox(1)'],
+    ['mailto:user@example.com'],
     ['']
   ])('rejects %j with the protocol error', (value) => {
     const result = validateSourceInput(value)

@@ -10,10 +10,6 @@ const props = defineProps<{
 const minLevel = computed(() =>
   props.headings.reduce((min, heading) => Math.min(min, heading.level), 6)
 )
-
-function indent(level: number): string {
-  return `${(level - minLevel.value) * 0.75}rem`
-}
 </script>
 
 <template>
@@ -22,7 +18,7 @@ function indent(level: number): string {
       <li
         v-for="heading in headings"
         :key="heading.id"
-        :style="{ paddingLeft: indent(heading.level) }"
+        :data-depth="heading.level - minLevel"
       >
         <a
           :href="`#${heading.id}`"

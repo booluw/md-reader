@@ -18,11 +18,13 @@ Follow the existing runbook: `The Contabo PaaS Book/12-onboarding-new-projects.m
 
 ## Acceptance criteria
 
-- [ ] `Dockerfile` + `nginx.conf` in the repo. nginx has `try_files $uri $uri/ /index.html;`,
+- [x] `Dockerfile` + `nginx.conf` in the repo. nginx has `try_files $uri $uri/ /index.html;`,
       long-cache headers on `/_nuxt/*` (hashed assets), `no-cache` on `index.html`, and the T10
       headers.
-- [ ] Image runs as non-root, has a `HEALTHCHECK` (`wget -qO- http://127.0.0.1:<port>/`) and
+      (Landed as part of T10, verified via the nginx-image security suite.)
+- [x] Image runs as non-root, has a `HEALTHCHECK` (`wget -qO- http://127.0.0.1:<port>/`) and
       no Node runtime in the final stage.
+      (`nginxinc/nginx-unprivileged:alpine` final stage, `EXPOSE 8080`, `HEALTHCHECK`.)
 - [ ] Coolify project `md-reader` with `production` environment, domain
       `https://reader.myshort.page:<port>` (12.7). DNS: `reader` A record on the
       `myshort.page` Cloudflare zone (12.3; add the zone per 04.1 if it isn't there yet).

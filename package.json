@@ -6,13 +6,15 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "generate": "nuxt generate",
+    "postgenerate": "node scripts/csp-hashes.mjs",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck && tsc -p tsconfig.tests.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:security": "playwright test --config playwright.security.config.ts"
   },
   "dependencies": {
     "dompurify": "^3.4.16",

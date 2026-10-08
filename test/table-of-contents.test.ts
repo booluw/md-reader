@@ -29,7 +29,9 @@ describe('TableOfContents', () => {
   it('indents headings by depth', () => {
     const wrapper = mount(TableOfContents, { props: { headings } })
     const items = wrapper.findAll('li')
-    expect(items[0]?.attributes('style')).toContain('padding-left: 0')
-    expect(items[1]?.attributes('style')).toContain('padding-left: 0.75rem')
+    expect(items[0]?.attributes('data-depth')).toBe('0')
+    expect(items[1]?.attributes('data-depth')).toBe('1')
+    expect(items[2]?.attributes('data-depth')).toBe('2')
+    expect(items[0]?.attributes('style')).toBeUndefined()
   })
 })

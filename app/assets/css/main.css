@@ -214,6 +214,26 @@ button {
   margin: 0.15rem 0;
 }
 
+.toc-list li[data-depth='1'] {
+  padding-left: 0.75rem;
+}
+
+.toc-list li[data-depth='2'] {
+  padding-left: 1.5rem;
+}
+
+.toc-list li[data-depth='3'] {
+  padding-left: 2.25rem;
+}
+
+.toc-list li[data-depth='4'] {
+  padding-left: 3rem;
+}
+
+.toc-list li[data-depth='5'] {
+  padding-left: 3.75rem;
+}
+
 .toc-list a {
   color: var(--fg-muted);
   text-decoration: none;

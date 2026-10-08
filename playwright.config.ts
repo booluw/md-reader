@@ -10,6 +10,7 @@ const darwinFirefoxHome =
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: /security-csp\.spec\.ts/,
   globalSetup: './e2e/fixtures.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

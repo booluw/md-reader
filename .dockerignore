@@ -1,0 +1,17 @@
+.git
+.github
+.vscode
+.idea
+node_modules
+.nuxt
+.output
+.nitro
+dist
+coverage
+test-results
+playwright-report
+docs
+e2e
+test
+*.log
+.env*

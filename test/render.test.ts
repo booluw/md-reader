@@ -44,6 +44,20 @@ describe('sanitization', () => {
     )
   })
 
+  it('removes style and template elements', () => {
+    const { html } = render(
+      'before <style>body { display: none }</style> <template>x</template> after',
+      urlSource
+    )
+    expect(html).not.toContain('<style')
+    expect(html).not.toContain('<template')
+  })
+
+  it('removes inline style attributes', () => {
+    const { html } = render('<p style="color:red">x</p>', urlSource)
+    expect(html).not.toContain('style=')
+  })
+
   it('removes inline event handlers', () => {
     const { html } = render('<img src="x" onerror="alert(1)">', urlSource)
     expect(html).not.toContain('onerror')
