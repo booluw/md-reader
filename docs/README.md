@@ -39,3 +39,16 @@ Tasks: [tasks.md](tasks.md) (index), one file per task in [tasks/](tasks/)
 - **XSS**: untrusted Markdown may contain HTML/scripts. Mitigated by D7 + CSP (T10).
 - **Storage eviction**: browsers can evict IndexedDB. Request persistent storage and tell the
   user local files may be cleared (T5).
+
+## Limits & privacy
+
+- **Some links need the right headers.** Everything is fetched directly in your browser — there
+  is no server-side proxy. A link to a `.md` file only works if the server that hosts it sends
+  CORS headers. GitHub raw, Gist raw and GitLab raw do; many other sites don't. When a host
+  refuses, md-reader shows a clear error instead of pretending.
+- **Local files stay on your device.** Uploaded files and folders are read in your browser and
+  kept in the app's IndexedDB storage on your device. Nothing is ever uploaded or stored on a
+  server.
+- **Share links re-open the original document.** A share link reproduces the reader state
+  (`/read?src=…`), which re-fetches the document from its original URL. md-reader never hosts a
+  copy, so you can't share a locally-uploaded file with anyone else.
